@@ -19,7 +19,11 @@ const style = {
   p: 4,
 };
 
-export default function WalletModal({ open, handleClose, setExpenses, setWalletBalance  }) {
+export default function WalletModal({
+  walletModalOpen,
+  handleWalletClose,
+  setWalletBalance,
+}) {
   const [errors, setErrors] = useState({});
   const [formData, setFormData] = useState({
     title: "",
@@ -28,7 +32,6 @@ export default function WalletModal({ open, handleClose, setExpenses, setWalletB
     date: "",
   });
 
-
   const handleChange = (event) => {
     const { name, value } = event.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
@@ -36,10 +39,10 @@ export default function WalletModal({ open, handleClose, setExpenses, setWalletB
 
   const validateForm = () => {
     let temp = { ...errors };
-    temp.title = formData.title ? "" : "This field is required.";
+    // temp.title = formData.title ? "" : "This field is required.";
     temp.price = formData.price ? "" : "This field is required.";
-    temp.category = formData.category ? "" : "This field is required.";
-    temp.date = formData.date ? "" : "This field is required.";
+    // temp.category = formData.category ? "" : "This field is required.";
+    // temp.date = formData.date ? "" : "This field is required.";
     setErrors({
       ...temp,
     });
@@ -63,12 +66,12 @@ export default function WalletModal({ open, handleClose, setExpenses, setWalletB
       console.log("Form Submitted:", formData);
 
       // Add expense to the list
-      setExpenses((prevExpenses) => [...prevExpenses, formData]);
-      
-      // Deduct from wallet balance
-      setWalletBalance((prev) => prev - Number(formData.price));
+      //setExpenses((prevExpenses) => [...prevExpenses, formData]);
+
+      // Add income to the wallet balance
+      setWalletBalance((prev) => prev + Number(formData.price));
       clearForm();
-      handleClose();
+      handleWalletClose();
     } else {
       console.log("Form not submitted");
     }
@@ -78,8 +81,8 @@ export default function WalletModal({ open, handleClose, setExpenses, setWalletB
     <div>
       {/* <Button onClick={handleOpen}>Open modal</Button> */}
       <Modal
-        open={open}
-        onClose={handleClose}
+        open={walletModalOpen}
+        onClose={handleWalletClose}
         aria-labelledby="modal-modal-title"
         aria-describedby="modal-modal-description"
         sx={{
@@ -89,34 +92,15 @@ export default function WalletModal({ open, handleClose, setExpenses, setWalletB
         }}
       >
         <Box sx={style} component="form" validate="true" autoComplete="off">
-          <Grid
-            container
-            spacing={2}
-            sx={{ display: "flex", justifyContent: "center" }}
-          >
-            <Grid item xs={12} sm={6} md={6}>
-              <TextField
-                id="filled-basic"
-                label="Title"
-                variant="filled"
-                size="small"
-                fullWidth
-                name="title"
-                value={formData.title}
-                type="text"
-                onChange={handleChange}
-                error={!!errors.title}
-                helperText={errors.title}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6} md={6}>
+          <Grid container spacing={2}>
+            <Grid item size={{ xs: 12, sm: 6, md: 6 }}>
               <TextField
                 id="filled-basic"
                 label="Price"
                 variant="filled"
                 size="small"
-                fullWidth
                 name="price"
+                fullWidth
                 value={formData.price}
                 onChange={handleChange}
                 type="number"
@@ -124,43 +108,7 @@ export default function WalletModal({ open, handleClose, setExpenses, setWalletB
                 helperText={errors.price}
               />
             </Grid>
-            <Grid item xs={12} sm={6} md={6}>
-              <TextField
-                id="filled-basic"
-                label="Category"
-                variant="filled"
-                size="small"
-                fullWidth
-                name="category"
-                value={formData.category}
-                onChange={handleChange}
-                type="text"
-                error={!!errors.category}
-                helperText={errors.category}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6} md={6}>
-              <TextField
-                id="filled-basic"
-                label="dd/mm/yyyy"
-                variant="filled"
-                size="small"
-                fullWidth
-                name="date"
-                value={formData.date}
-                onChange={handleChange}
-                type="text"
-                error={!!errors.date}
-                helperText={errors.date}
-              />
-            </Grid>
-          </Grid>
-          <Grid
-            container
-            spacing={2}
-            sx={{ justifyContent: "space-around", mt: 2 }}
-          >
-            <Grid item xs={12} sm={6} md={6}>
+            <Grid item size={{ xs: 12, sm: 3, md: 3 }}>
               <Button
                 fullWidth
                 sx={{
@@ -171,10 +119,10 @@ export default function WalletModal({ open, handleClose, setExpenses, setWalletB
                 type="submit"
                 onClick={handleSubmit}
               >
-                Add Expense
+                Add Balance
               </Button>
             </Grid>
-            <Grid item xs={12} sm={6} md={6}>
+            <Grid item size={{ xs: 12, sm: 3, md: 3 }}>
               <Button
                 fullWidth
                 sx={{
@@ -183,7 +131,7 @@ export default function WalletModal({ open, handleClose, setExpenses, setWalletB
                   color: "#000000",
                   boxShadow: "0px 4px 4px 0px #00000040",
                 }}
-                onClick={handleClose}
+                onClick={handleWalletClose}
               >
                 Cancel
               </Button>

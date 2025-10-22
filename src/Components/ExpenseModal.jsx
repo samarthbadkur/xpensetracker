@@ -1,11 +1,9 @@
-import * as React from "react";
+import React, { useState, useEffect } from "react";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
-import Typography from "@mui/material/Typography";
 import Modal from "@mui/material/Modal";
 import TextField from "@mui/material/TextField";
 import { Grid } from "@mui/material";
-import { useState } from "react";
 
 const style = {
   position: "absolute",
@@ -19,7 +17,14 @@ const style = {
   p: 4,
 };
 
-export default function ExpenseModal({ open, handleClose, setExpenses, setWalletBalance  }) {
+export default function ExpenseModal({
+  expenseModalOpen,
+  handleExpenseClose,
+  setExpenses,
+  setWalletBalance,
+  expenseIndex,
+  expenses,
+}) {
   const [errors, setErrors] = useState({});
   const [formData, setFormData] = useState({
     title: "",
@@ -28,6 +33,21 @@ export default function ExpenseModal({ open, handleClose, setExpenses, setWallet
     date: "",
   });
 
+  useEffect(() => {
+    if (expenseIndex !== null && expenseIndex !== undefined) {
+      const expenseToEdit = expenses[expenseIndex];
+      if (expenseToEdit) {
+        setFormData({
+          title: expenseToEdit.title || "",
+          price: expenseToEdit.price || "",
+          category: expenseToEdit.category || "",
+          date: expenseToEdit.date || "",
+        });
+      }
+    } else {
+      clearForm();
+    }
+  }, [expenseIndex, expenses]);
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -35,15 +55,12 @@ export default function ExpenseModal({ open, handleClose, setExpenses, setWallet
   };
 
   const validateForm = () => {
-    let temp = { ...errors };
+    let temp = {};
     temp.title = formData.title ? "" : "This field is required.";
     temp.price = formData.price ? "" : "This field is required.";
     temp.category = formData.category ? "" : "This field is required.";
     temp.date = formData.date ? "" : "This field is required.";
-    setErrors({
-      ...temp,
-    });
-    // Return true if no errors
+    setErrors({ ...temp });
     return Object.values(temp).every((x) => x === "");
   };
 
@@ -59,138 +76,134 @@ export default function ExpenseModal({ open, handleClose, setExpenses, setWallet
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (validateForm()) {
-      console.log("Form Submitted:", formData);
-
-      // Add expense to the list
-      setExpenses((prevExpenses) => [...prevExpenses, formData]);
-      
-      // Deduct from wallet balance
-      setWalletBalance((prev) => prev - Number(formData.price));
-      clearForm();
-      handleClose();
-    } else {
+    if (!validateForm()) {
       console.log("Form not submitted");
+      return;
     }
+
+    if (expenseIndex !== null && expenseIndex !== undefined) {
+      // Edit existing expense
+      setExpenses((prevExpenses) => {
+        const updatedExpenses = [...prevExpenses];
+        updatedExpenses[expenseIndex] = formData;
+        return updatedExpenses;
+      });
+      clearForm();
+      handleExpenseClose();
+      return;
+    }
+
+    // Add new expense
+    setExpenses((prevExpenses) => [...prevExpenses, formData]);
+
+    // Deduct from wallet balance
+    setWalletBalance((prev) => prev - Number(formData.price));
+
+    clearForm();
+    handleExpenseClose();
   };
 
   return (
-    <div>
-      {/* <Button onClick={handleOpen}>Open modal</Button> */}
-      <Modal
-        open={open}
-        onClose={handleClose}
-        aria-labelledby="modal-modal-title"
-        aria-describedby="modal-modal-description"
-        sx={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-        }}
-      >
-        <Box sx={style} component="form" validate="true" autoComplete="off">
-          <Grid
-            container
-            spacing={2}
-            sx={{ display: "flex", justifyContent: "center" }}
-          >
-            <Grid item xs={12} sm={6} md={6}>
-              <TextField
-                id="filled-basic"
-                label="Title"
-                variant="filled"
-                size="small"
-                fullWidth
-                name="title"
-                value={formData.title}
-                type="text"
-                onChange={handleChange}
-                error={!!errors.title}
-                helperText={errors.title}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6} md={6}>
-              <TextField
-                id="filled-basic"
-                label="Price"
-                variant="filled"
-                size="small"
-                fullWidth
-                name="price"
-                value={formData.price}
-                onChange={handleChange}
-                type="number"
-                error={!!errors.price}
-                helperText={errors.price}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6} md={6}>
-              <TextField
-                id="filled-basic"
-                label="Category"
-                variant="filled"
-                size="small"
-                fullWidth
-                name="category"
-                value={formData.category}
-                onChange={handleChange}
-                type="text"
-                error={!!errors.category}
-                helperText={errors.category}
-              />
-            </Grid>
-            <Grid item xs={12} sm={6} md={6}>
-              <TextField
-                id="filled-basic"
-                label="dd/mm/yyyy"
-                variant="filled"
-                size="small"
-                fullWidth
-                name="date"
-                value={formData.date}
-                onChange={handleChange}
-                type="text"
-                error={!!errors.date}
-                helperText={errors.date}
-              />
-            </Grid>
+    <Modal
+      open={expenseModalOpen}
+      onClose={handleExpenseClose}
+      aria-labelledby="modal-modal-title"
+      aria-describedby="modal-modal-description"
+      sx={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+      }}
+    >
+      <Box sx={style} component="form" autoComplete="off" onSubmit={handleSubmit}>
+        <Grid container spacing={2} sx={{ justifyContent: "center" }}>
+          <Grid item xs={12} sm={6} md={6}>
+            <TextField
+              label="Title"
+              variant="filled"
+              size="small"
+              fullWidth
+              name="title"
+              value={formData.title}
+              type="text"
+              onChange={handleChange}
+              error={!!errors.title}
+              helperText={errors.title}
+            />
           </Grid>
-          <Grid
-            container
-            spacing={2}
-            sx={{ justifyContent: "space-around", mt: 2 }}
-          >
-            <Grid item xs={12} sm={6} md={6}>
-              <Button
-                fullWidth
-                sx={{
-                  backgroundColor: "#F4BB4A",
-                  color: "#FFFFFF",
-                  boxShadow: "0px 4px 4px 0px #00000040",
-                }}
-                type="submit"
-                onClick={handleSubmit}
-              >
-                Add Expense
-              </Button>
-            </Grid>
-            <Grid item xs={12} sm={6} md={6}>
-              <Button
-                fullWidth
-                sx={{
-                  backgroundColor:
-                    "linear-gradient(0deg, #D9D9D9, #D9D9D9), linear-gradient(0deg, #D9D9D9, #D9D9D9), linear-gradient(0deg, #E3E3E3, #E3E3E3)",
-                  color: "#000000",
-                  boxShadow: "0px 4px 4px 0px #00000040",
-                }}
-                onClick={handleClose}
-              >
-                Cancel
-              </Button>
-            </Grid>
+          <Grid item xs={12} sm={6} md={6}>
+            <TextField
+              label="Price"
+              variant="filled"
+              size="small"
+              fullWidth
+              name="price"
+              value={formData.price}
+              onChange={handleChange}
+              type="number"
+              error={!!errors.price}
+              helperText={errors.price}
+            />
           </Grid>
-        </Box>
-      </Modal>
-    </div>
+          <Grid item xs={12} sm={6} md={6}>
+            <TextField
+              label="Category"
+              variant="filled"
+              size="small"
+              fullWidth
+              name="category"
+              value={formData.category}
+              onChange={handleChange}
+              type="text"
+              error={!!errors.category}
+              helperText={errors.category}
+            />
+          </Grid>
+          <Grid item xs={12} sm={6} md={6}>
+            <TextField
+              label="dd/mm/yyyy"
+              variant="filled"
+              size="small"
+              fullWidth
+              name="date"
+              value={formData.date}
+              onChange={handleChange}
+              type="text"
+              error={!!errors.date}
+              helperText={errors.date}
+            />
+          </Grid>
+        </Grid>
+        <Grid container spacing={2} sx={{ justifyContent: "space-around", mt: 2 }}>
+          <Grid item xs={12} sm={6} md={6}>
+            <Button
+              fullWidth
+              type="submit"
+              sx={{
+                backgroundColor: "#F4BB4A",
+                color: "#FFFFFF",
+                boxShadow: "0px 4px 4px 0px #00000040",
+              }}
+            >
+              Add Expense
+            </Button>
+          </Grid>
+          <Grid item xs={12} sm={6} md={6}>
+            <Button
+              fullWidth
+              sx={{
+                backgroundColor:
+                  "linear-gradient(0deg, #D9D9D9, #D9D9D9), linear-gradient(0deg, #D9D9D9, #D9D9D9), linear-gradient(0deg, #E3E3E3, #E3E3E3)",
+                color: "#000000",
+                boxShadow: "0px 4px 4px 0px #00000040",
+              }}
+              onClick={handleExpenseClose}
+            >
+              Cancel
+            </Button>
+          </Grid>
+        </Grid>
+      </Box>
+    </Modal>
   );
 }

@@ -6,6 +6,9 @@ import ExpenseModal from "./ExpenseModal";
 import LocalPizzaIcon from "@mui/icons-material/LocalPizza";
 import CancelIcon from "@mui/icons-material/Cancel";
 import EditIcon from "@mui/icons-material/Edit";
+import CardGiftcardIcon from "@mui/icons-material/CardGiftcard";
+import CardTravelIcon from "@mui/icons-material/CardTravel";
+import WalletModal from "./WalletModal";
 
 const Home = () => {
   const [walletBalance, setWalletBalance] = useState(
@@ -15,40 +18,67 @@ const Home = () => {
     JSON.parse(localStorage.getItem("expenses")) || []
   );
   const [expenseTotal, setExpenseTotal] = useState(0);
-  const [open, setOpen] = useState(false);
+  const [expenseModalOpen, setExpenseModalOpen] = useState(false);
+  const [walletModalOpen, setWalletModalOpen] = useState(false);
+  const [expenseIndex, setExpenseIndex] = useState(null);
 
   const [categoryPercentages, setCategoryPercentages] = useState({});
 
-  const handleOpen = () => {
-    console.log("Opening modal");
-    setOpen(true);
+  const handleExpenseOpen = () => {
+    setExpenseModalOpen(true);
+  };
+  const handleWalletOpen = () => {
+    setWalletModalOpen(true);
   };
 
-  const handleClose = () => setOpen(false);
+  const handleExpenseClose = () => {
+    setExpenseModalOpen(false);
+    setExpenseIndex(null);
+  };
+  const handleWalletClose = () => {
+    setWalletModalOpen(false);
+  };
+
+  const handleExpenseDelete = (index) => () => {
+    const updatedExpenses = expenses.filter((_, i) => i !== index);
+    setExpenses(updatedExpenses);
+    setWalletBalance(
+      (prevBalance) => prevBalance + Number(expenses[index].price)
+    );
+  };
+
+  const handleExpenseEdit = (index) => {
+    setExpenseIndex(index);
+    setExpenseModalOpen(true);
+  };
 
   const calculateCategoryPercentages = (expenses) => {
     if (!expenses?.length) {
       return { food: 0, travel: 0, entertainment: 0 };
     }
 
-    const categoryCounts = { food: 0, travel: 0, entertainment: 0 };
-    let totalCount = 0;
+    const categorySums = { food: 0, travel: 0, entertainment: 0 };
 
-    // Single pass: count and track total
-    for (const { category } of expenses) {
-      if (categoryCounts.hasOwnProperty(category)) {
-        categoryCounts[category]++;
-        totalCount++;
+    for (const { category, price } of expenses) {
+      if (categorySums.hasOwnProperty(category)) {
+        categorySums[category] += Number(price);
       }
     }
 
-    // Compute percentages in one more pass
-    const factor = totalCount === 0 ? 0 : 100 / totalCount;
-    for (const key in categoryCounts) {
-      categoryCounts[key] = +(categoryCounts[key] * factor).toFixed(2);
+    const totalSpent = Object.values(categorySums).reduce(
+      (acc, val) => acc + val,
+      0
+    );
+
+    const percentages = {};
+    for (const key in categorySums) {
+      percentages[key] =
+        totalSpent === 0
+          ? 0
+          : +((categorySums[key] / totalSpent) * 100).toFixed(2);
     }
 
-    return categoryCounts;
+    return percentages;
   };
 
   useEffect(() => {
@@ -61,16 +91,9 @@ const Home = () => {
     localStorage.setItem("expenses", JSON.stringify(expenses));
   }, [expenses]);
 
-  // Persist wallet balance to localStorage whenever it changes
   useEffect(() => {
     localStorage.setItem("walletBalance", walletBalance.toString());
   }, [walletBalance]);
-
-  // xs=12 applies at 0px–599px
-
-  // sm=8/4 applies at ≥600px–899px
-
-  // md=8/4 applies at ≥900px
 
   return (
     <>
@@ -112,6 +135,7 @@ const Home = () => {
                 fontSize: "16px",
                 color: "white",
               }}
+              onClick={handleWalletOpen}
             >
               + Add Income
             </Button>
@@ -144,7 +168,7 @@ const Home = () => {
                 fontSize: "16px",
                 color: "white",
               }}
-              onClick={handleOpen}
+              onClick={handleExpenseOpen}
             >
               + Add Expense
             </Button>
@@ -165,6 +189,7 @@ const Home = () => {
           </Box>
         </Grid>
       </Grid>
+
       <Grid container spacing={2} sx={{ m: 2, border: "1px solid black" }}>
         <Grid
           item
@@ -186,10 +211,14 @@ const Home = () => {
                 >
                   <Grid item size={{ xs: 2, sm: 2, md: 2 }}>
                     <Box onClick={() => console.log("Icon clicked")}>
-                      <LocalPizzaIcon />
+                      {expense.category === "entertainment" && (
+                        <CardGiftcardIcon />
+                      )}
+                      {expense.category === "travel" && <CardTravelIcon />}
+                      {expense.category === "food" && <LocalPizzaIcon />}
                     </Box>
                   </Grid>
-                  <Grid item size={{ xs: 4, sm: 4, md: 4 }}>
+                  <Grid item size={{ xs: 4, sm: 4, md: 4 }}git >
                     <Box>
                       <Grid container spacing={1}>
                         <Grid item size={{ xs: 12, sm: 12, md: 12 }}>
@@ -206,12 +235,18 @@ const Home = () => {
                   </Grid>
                   <Grid item size={{ xs: 2, sm: 2, md: 2 }}>
                     <Box>
-                      <CancelIcon sx={{ cursor: "pointer" }} />
+                      <CancelIcon
+                        sx={{ cursor: "pointer" }}
+                        onClick={handleExpenseDelete(index)}
+                      />
                     </Box>
                   </Grid>
                   <Grid item size={{ xs: 2, sm: 2, md: 2 }}>
                     <Box>
-                      <EditIcon sx={{ cursor: "pointer" }} />
+                      <EditIcon
+                        sx={{ cursor: "pointer" }}
+                        onClick={() => handleExpenseEdit(index)}
+                      />
                     </Box>
                   </Grid>
                 </Grid>
@@ -231,7 +266,6 @@ const Home = () => {
           }}
         >
           <Box>Top Expenses</Box>
-          {/* {categoryCounts && ()} */}
           <Grid
             container
             spacing={2}
@@ -308,9 +342,16 @@ const Home = () => {
       </Grid>
 
       <ExpenseModal
-        open={open}
-        handleClose={handleClose}
+        expenseModalOpen={expenseModalOpen}
+        handleExpenseClose={handleExpenseClose}
         setExpenses={setExpenses}
+        setWalletBalance={setWalletBalance}
+        expenseIndex={expenseIndex}
+        expenses={expenses}
+      />
+      <WalletModal
+        walletModalOpen={walletModalOpen}
+        handleWalletClose={handleWalletClose}
         setWalletBalance={setWalletBalance}
       />
     </>
